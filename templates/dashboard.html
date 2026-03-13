@@ -3,107 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VanX | Stealth Dashboard</title>
+    <title>VIVAN | Pro Dashboard</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
-        body { 
-            margin: 0; padding: 0; background: #0a0b10; color: #00ff88; 
-            font-family: 'Roboto', sans-serif; overflow-x: hidden;
-        }
-        header {
-            background: rgba(16, 18, 27, 0.9); padding: 20px;
-            border-bottom: 2px solid #00ff88; text-align: center;
-            box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
-        }
-        h1 { font-family: 'Orbitron', sans-serif; margin: 0; letter-spacing: 3px; font-size: 1.5rem; }
+        :root { --neon-blue: #00d2ff; --neon-green: #39ff14; --bg-dark: #0f172a; }
+        body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg-dark); color: white; height: 100vh; display: flex; flex-direction: column; }
         
-        .container { padding: 20px; }
-        
-        .stats-grid { 
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
-            gap: 15px; margin-bottom: 20px; 
-        }
-        .stat-card {
-            background: #161a25; border: 1px solid #2d3343; padding: 20px;
-            border-radius: 12px; transition: 0.3s;
-        }
-        .stat-card:hover { border-color: #00ff88; transform: translateY(-5px); }
-        .stat-card h3 { margin: 0; color: #8892b0; font-size: 0.8rem; text-transform: uppercase; }
-        .stat-card p { margin: 10px 0 0; font-size: 1.8rem; font-weight: bold; font-family: 'Orbitron'; }
+        header { background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(10px); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0, 210, 255, 0.3); }
+        .logo { font-family: 'Orbitron'; color: var(--neon-blue); text-shadow: 0 0 10px var(--neon-blue); }
 
-        #map { 
-            height: 450px; width: 100%; border-radius: 15px; 
-            border: 1px solid #2d3343; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
+        .link-bar { background: rgba(0, 210, 255, 0.1); padding: 10px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        code { background: #000; padding: 5px 10px; color: var(--neon-green); border-radius: 4px; }
+
+        .main-layout { display: flex; flex: 1; overflow: hidden; }
+        #map { flex: 3; background: #0b0e14; }
         
-        /* Modern Leaflet Design */
-        .leaflet-container { background: #0a0b10 !important; }
-        .leaflet-popup-content-wrapper { background: #161a25; color: #00ff88; border: 1px solid #00ff88; }
-        .leaflet-popup-tip { background: #00ff88; }
+        .sidebar { flex: 1; background: #1e293b; padding: 20px; border-left: 1px solid rgba(255,255,255,0.1); overflow-y: auto; min-width: 280px; }
+        .stat-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px; margin-bottom: 15px; }
+        .live-item { border-left: 3px solid var(--neon-green); padding: 10px; background: rgba(255,255,255,0.02); margin-top: 10px; font-size: 0.8rem; }
+        
+        button { background: var(--neon-blue); border: none; padding: 5px 15px; border-radius: 4px; color: #0f172a; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
 
 <header>
-    <h1>VANX STEALTH SYSTEM v2.0</h1>
+    <div class="logo">VIVAN TRACKER PRO</div>
+    <div style="font-size: 0.8rem; color: var(--neon-green)">● Welcome, {{ username }} | <a href="/logout" style="color: white; text-decoration:none;">Logout</a></div>
 </header>
 
-<div class="container">
-    <div class="stats-grid">
-        <div class="stat-card">
-            <h3>Active Nodes</h3>
-            <p id="count">0</p>
-        </div>
-        <div class="stat-card" style="border-left: 4px solid #00ff88;">
-            <h3>System Status</h3>
-            <p style="color: #00ff88; font-size: 1.2rem;">ENCRYPTED</p>
-        </div>
-        <div class="stat-card">
-            <h3>Network Health</h3>
-            <p style="color: #4cc9f0; font-size: 1.2rem;">STABLE</p>
-        </div>
-    </div>
+<div class="link-bar">
+    <span>Your Tracking Link: </span>
+    <code id="trackLink">{{ link }}</code>
+    <button onclick="copyLink()">COPY</button>
+</div>
 
+<div class="main-layout">
     <div id="map"></div>
+    <div class="sidebar">
+        <div class="stat-card">
+            <h4 style="margin:0; color: #94a3b8;">SYSTEM STATUS</h4>
+            <p style="color: var(--neon-green); font-family: 'Orbitron'; margin: 10px 0;">ACTIVE ACCESS</p>
+        </div>
+        <div id="feed">
+            <h4 style="color: var(--neon-blue);">LIVE ACTIVITY LOG</h4>
+            </div>
+    </div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    var map = L.map('map').setView([26.7606, 83.8914], 6);
-    
-    // Dark Mode Map Tiles
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap'
-    }).addTo(map);
+    var map = L.map('map', {zoomControl: false}).setView([26.7606, 83.8914], 10);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
 
-    function loadData() {
+    function copyLink() {
+        var text = document.getElementById("trackLink").innerText;
+        navigator.clipboard.writeText(text);
+        alert("Link Copied!");
+    }
+
+    function fetchData() {
         fetch('/get_data')
             .then(res => res.json())
             .then(data => {
-                document.getElementById('count').innerText = data.length;
-                data.forEach(loc => {
-                    var marker = L.circleMarker([loc.latitude, loc.longitude], {
-                        color: '#00ff88',
-                        radius: 8,
-                        fillOpacity: 0.8
+                const feed = document.getElementById('feed');
+                feed.innerHTML = '<h4 style="color: var(--neon-blue);">LIVE ACTIVITY LOG</h4>';
+                
+                data.forEach((loc, i) => {
+                    // Update Map
+                    L.circleMarker([loc.latitude, loc.longitude], {
+                        radius: i === 0 ? 10 : 6,
+                        color: i === 0 ? '#00d2ff' : '#39ff14',
+                        fillOpacity: 0.7
                     }).addTo(map);
-                    
-                    marker.bindPopup(`
-                        <div style="font-family: 'Orbitron'">
-                            <b style="color: #4cc9f0">TARGET INFO</b><br>
-                            🔋 Battery: ${loc.battery}<br>
-                            📡 Type: ${loc.type}<br>
-                            ⏰ ${loc.timestamp}
+
+                    // Update Sidebar Feed
+                    feed.innerHTML += `
+                        <div class="live-item">
+                            <b>Update Received</b><br>
+                            Batt: ${loc.battery} | Time: ${loc.timestamp}
                         </div>
-                    `);
+                    `;
                 });
             });
     }
 
-    loadData();
-    // Auto Refresh every 30 seconds
-    setInterval(loadData, 30000);
+    setInterval(fetchData, 15000);
+    fetchData();
 </script>
 
 </body>
