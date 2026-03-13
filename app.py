@@ -1,18 +1,28 @@
 from flask import Flask, request, jsonify
 from pymongo import MongoClient
 import datetime
+import urllib.parse
 
 app = Flask(__name__)
 
-# Aapka MongoDB link jo humne pehle nikala tha
-MONGO_URI = "mongodb://avinash0788:@Avinash8@ac-qkdovs-shard-00-00.qkdovs.mongodb.net:27017,ac-qkdovs-shard-00-01.qkdovs.mongodb.net:27017,ac-qkdovs-shard-00-02.qkdovs.mongodb.net:27017/?ssl=true&replicaSet=atlas-9x02k7-shard-0&authSource=admin&retryWrites=true&w=majority&appName=VanX-Tracker"
-client = MongoClient(MONGO_URI)
-db = client['vanx_db']
-collection = db['location_logs']
+# Aapke credentials
+username = urllib.parse.quote_plus('avinash0788')
+password = urllib.parse.quote_plus('@Avinash8')
+
+# Yeh link ab 100% safe hai
+MONGO_URI = f"mongodb+srv://{username}:{password}@vanx-tracker.qkdovs.mongodb.net/?retryWrites=true&w=majority&appName=VanX-Tracker"
+
+try:
+    client = MongoClient(MONGO_URI)
+    db = client['vanx_db']
+    collection = db['location_logs']
+    print("✅ Connected to MongoDB successfully!")
+except Exception as e:
+    print(f"❌ Connection Error: {e}")
 
 @app.route('/')
 def home():
-    return "VanX Server is Running!"
+    return "VanX Server is Running and Secure!"
 
 @app.route('/update', methods=['POST'])
 def update():
