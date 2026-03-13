@@ -1,44 +1,36 @@
-from flask import Flask, request, jsonify
-from pymongo import MongoClient
-import datetime
-import urllib.parse
+import os
+from flask import Flask, render_template, request, jsonify
+from pymongo.mongo_client import MongoClient
+from pymongo.server_api import ServerApi
 
 app = Flask(__name__)
 
-# Aapke Credentials (Safe mode mein)
-user = urllib.parse.quote_plus('avinash0788')
-pw = urllib.parse.quote_plus('@Avinash8')
+# 1. Environment variable se URI uthana (Jo humne Render settings me save kiya)
+uri = os.environ.get('MONGO_URI')
 
-# Yahan user aur pw variables ka istemal ho raha hai
-MONGO_URI = f"mongodb+srv://{user}:{pw}@vanx-tracker.qkdovs.mongodb.net/?retryWrites=true&w=majority&appName=VanX-Tracker"
+# 2. MongoDB Client Setup
+# Agar Render me variable nahi mila toh error handle karne ke liye
+if not uri:
+    print("Error: MONGO_URI environment variable nahi mila!")
+else:
+    client = MongoClient(uri, server_api=ServerApi('1'))
+    db = client['vanx_database']  # Apne database ka naam yahan likhein
 
-# Global variable banate hain taaki error na aaye
-collection = None
-
+# 3. Connection Check (Logs me dikhega)
 try:
-    client = MongoClient(MONGO_URI)
-    db = client['vanx_db']
-    collection = db['location_logs']
-    print("✅ Connected to MongoDB")
+    if uri:
+        client.admin.command('ping')
+        print("Pinged your deployment. You successfully connected to MongoDB!")
 except Exception as e:
-    print(f"❌ Connection Error: {e}")
+    print(f"MongoDB Connection Error: {e}")
 
 @app.route('/')
-def home():
-    return "VanX Bridge is Active!"
+def index():
+    return "VanX Backend is Running!"
 
-@app.route('/update', methods=['POST'])
-def update():
-    if collection is None:
-        return jsonify({"status": "error", "msg": "Database not connected"}), 500
-    
-    try:
-        data = request.json
-        data['server_time'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        collection.insert_one(data)
-        return jsonify({"status": "success", "msg": "Data Saved!"}), 200
-    except Exception as e:
-        return jsonify({"status": "error", "msg": str(e)}), 500
+# Aapke baaki routes (jaise /update, /get_location) yahan niche aayenge...
 
-if __name__ == "__main__":
-    app.run()
+if __name__ == '__main__':
+    # Render ke liye port setup
+    port = int(os.environ.get('PORT', 10000))
+    app.run(host='0.0.0.0', port=port)
