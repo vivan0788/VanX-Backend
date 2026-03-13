@@ -5,9 +5,13 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import uuid
 
-# 1. Global App Instance (Render/Gunicorn ke liye zaroori)
+# 1. Global App Instance
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "vivan_123")
+
+# --- SECURITY CONFIG ---
+# Is key ko aap kabhi bhi badal sakte hain. Naya account banane ke liye ye zaroori hogi.
+ADMIN_SECRET_KEY = "VIVAN@2026" 
 
 # 2. Database Connection
 MONGO_URI = os.environ.get("MONGO_URI", "your_mongodb_uri_here")
@@ -22,7 +26,7 @@ AUDIO_FOLDER = 'static/recordings'
 if not os.path.exists(AUDIO_FOLDER):
     os.makedirs(AUDIO_FOLDER)
 
-# 3. Health Check Route (Render ko batane ke liye ki app zinda hai)
+# 3. Health Check Route
 @app.route('/health')
 def health():
     return "OK", 200
@@ -37,14 +41,23 @@ def home():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
+        # Form se data nikalna
+        secret_key_input = request.form.get('secret_key')
         username = request.form.get('username')
         password = request.form.get('password')
+
+        # SECURITY CHECK: Secret key verify karna
+        if secret_key_input != ADMIN_SECRET_KEY:
+            return "<h1>⚠️ Access Denied!</h1><p>Galat Secret Key dali hai. Aap account nahi bana sakte.</p>", 403
+
         if users_col.find_one({"username": username}):
             return "User already exists!"
+            
         hashed_pw = generate_password_hash(password)
         user_id = str(uuid.uuid4())[:8]
         users_col.insert_one({"user_id": user_id, "username": username, "password": hashed_pw})
         return redirect(url_for('login'))
+        
     return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
