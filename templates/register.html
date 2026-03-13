@@ -7,13 +7,16 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
         body { margin: 0; background: #0f172a; color: white; font-family: 'Inter', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        .login-card { background: rgba(30, 41, 59, 0.7); padding: 40px; border-radius: 20px; border: 1px solid rgba(0, 210, 255, 0.3); box-shadow: 0 0 30px rgba(0,0,0,0.5); width: 100%; max-width: 400px; text-align: center; backdrop-filter: blur(10px); }
-        .logo { font-family: 'Orbitron'; color: #00d2ff; font-size: 1.8rem; margin-bottom: 30px; text-shadow: 0 0 10px #00d2ff; }
-        input { width: 100%; padding: 12px; margin: 10px 0; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: white; box-sizing: border-box; outline: none; transition: 0.3s; }
-        input:focus { border-color: #00d2ff; box-shadow: 0 0 10px rgba(0, 210, 255, 0.2); }
-        button { width: 100%; padding: 12px; margin-top: 20px; background: #00d2ff; border: none; border-radius: 8px; color: #0f172a; font-weight: bold; cursor: pointer; font-family: 'Orbitron'; transition: 0.3s; }
+        .login-card { background: rgba(30, 41, 59, 0.7); padding: 40px; border-radius: 20px; border: 1px solid rgba(0, 210, 255, 0.3); width: 320px; text-align: center; backdrop-filter: blur(10px); }
+        .logo { font-family: 'Orbitron'; color: #00d2ff; font-size: 1.8rem; margin-bottom: 10px; text-shadow: 0 0 10px rgba(0, 210, 255, 0.5); }
+        h2 { font-size: 0.9rem; letter-spacing: 2px; color: #94a3b8; margin-bottom: 25px; text-transform: uppercase; }
+        input { width: 100%; padding: 12px; margin: 10px 0; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: white; box-sizing: border-box; transition: 0.3s; }
+        input:focus { border-color: #00d2ff; outline: none; box-shadow: 0 0 10px rgba(0, 210, 255, 0.2); }
+        button { width: 100%; padding: 12px; margin-top: 20px; background: #00d2ff; border: none; border-radius: 8px; color: #0f172a; font-weight: 700; cursor: pointer; transition: 0.3s; text-transform: uppercase; letter-spacing: 1px; }
         button:hover { background: #39ff14; transform: scale(1.02); }
-        a { color: #00d2ff; text-decoration: none; font-size: 0.9rem; }
+        p { margin-top: 20px; font-size: 0.8rem; color: #94a3b8; }
+        a { color: #00d2ff; text-decoration: none; font-weight: 600; }
+        a:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -22,10 +25,14 @@
         <h2 style="margin-bottom: 20px;">SIGN UP</h2>
         <form action="/register" method="POST">
             <input type="text" name="username" placeholder="Choose Username" required>
+            
             <input type="password" name="password" placeholder="Create Password" required>
+            
+            <input type="password" name="secret_key" placeholder="Admin Secret Key" required style="border-color: rgba(0, 210, 255, 0.5);">
+            
             <button type="submit">CREATE ACCOUNT</button>
         </form>
-        <p style="margin-top: 20px; font-size: 0.8rem; color: #94a3b8;">Already have an account? <a href="/login">Login here</a></p>
+        <p>Already have an account? <a href="/login">Login</a></p>
     </div>
 </body>
 </html>
