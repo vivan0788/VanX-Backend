@@ -3,132 +3,130 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VIVAN | Pro Monitoring & History Dashboard</title>
+    <title>VIVAN TRACKER PRO | ADMIN</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
-        :root { --neon-blue: #00d2ff; --neon-green: #39ff14; --bg-dark: #0f172a; }
-        body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg-dark); color: white; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        body { margin: 0; background: #0b0f19; color: white; font-family: 'Inter', sans-serif; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        header { background: #111827; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #00d2ff; }
+        .logo { font-family: 'Orbitron'; color: #00d2ff; font-size: 1.2rem; text-shadow: 0 0 10px rgba(0,210,255,0.5); }
+        .stats { font-size: 0.8rem; color: #10b981; }
         
-        header { background: rgba(30, 41, 59, 0.9); backdrop-filter: blur(10px); padding: 12px 25px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--neon-blue); z-index: 1000; }
-        .logo { font-family: 'Orbitron'; color: var(--neon-blue); text-shadow: 0 0 10px var(--neon-blue); font-size: 1.2rem; }
+        #main-container { display: flex; flex: 1; position: relative; }
+        #map { flex: 1; z-index: 1; }
         
-        .link-section { background: rgba(0, 210, 255, 0.05); padding: 10px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        code { background: #000; padding: 5px 12px; color: var(--neon-green); border-radius: 4px; font-size: 0.85rem; border: 1px solid rgba(57, 255, 20, 0.3); }
-        
-        .dashboard-container { display: flex; flex: 1; overflow: hidden; }
-        #map { flex: 3; height: 100%; }
-        
-        .sidebar { flex: 1; min-width: 320px; background: #1e293b; border-left: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; overflow-y: auto; }
-        .panel { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .panel-title { font-family: 'Orbitron'; font-size: 0.75rem; color: var(--neon-blue); letter-spacing: 1px; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
-        
-        .log-item { background: rgba(0,0,0,0.2); padding: 10px; border-radius: 6px; border-left: 3px solid var(--neon-green); margin-bottom: 10px; font-size: 0.8rem; }
-        .btn-copy { background: var(--neon-blue); border: none; padding: 6px 15px; border-radius: 4px; color: #0f172a; font-weight: bold; cursor: pointer; font-size: 0.7rem; }
-        
-        audio { height: 30px; width: 100%; margin-top: 5px; filter: invert(100%) hue-rotate(180deg) brightness(1.5); }
+        .control-panel { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 1000; background: rgba(17, 24, 39, 0.9); padding: 10px; border-radius: 8px; border: 1px solid #00d2ff; display: flex; gap: 10px; backdrop-filter: blur(5px); }
+        .btn { padding: 8px 15px; border-radius: 5px; border: none; font-weight: 600; cursor: pointer; transition: 0.3s; font-size: 0.8rem; }
+        .btn-copy { background: #00d2ff; color: #0b0f19; }
+        .btn-street { background: #f4b400; color: white; }
+        .btn:hover { opacity: 0.8; transform: scale(1.05); }
+
+        .sidebar { width: 250px; background: #111827; border-left: 1px solid #1f2937; padding: 15px; overflow-y: auto; font-size: 0.9rem; }
+        .log-item { background: #1f2937; padding: 10px; border-radius: 5px; margin-bottom: 10px; border-left: 3px solid #00d2ff; }
     </style>
 </head>
 <body>
 
 <header>
     <div class="logo">VIVAN TRACKER PRO</div>
-    <div style="font-size: 0.75rem;">
-        <span style="color: var(--neon-green)">● ONLINE: {{ username }}</span> | 
-        <a href="/logout" style="color: #ff4757; text-decoration: none;">LOGOUT</a>
-    </div>
+    <div class="stats">● ONLINE: {{ username }} | <a href="/logout" style="color:#ef4444; text-decoration:none;">LOGOUT</a></div>
 </header>
 
-<div class="link-section">
-    <code id="trackLink">{{ link }}</code>
-    <button class="btn-copy" onclick="copyLink()">COPY TRACKING URL</button>
-</div>
+<div id="main-container">
+    <div class="control-panel">
+        <button class="btn btn-copy" onclick="copyLink()">COPY TRACKING URL</button>
+        <button id="street-view-btn" class="btn btn-street" onclick="openStreetView()">📍 STREET VIEW 360°</button>
+    </div>
 
-<div class="dashboard-container">
     <div id="map"></div>
+
     <div class="sidebar">
-        <div class="panel">
-            <div class="panel-title">📍 LOCATION HISTORY PATH</div>
-            <div id="location-feed">
-                <p style="font-size: 0.75rem; color: #64748b;">Loading history...</p>
-            </div>
-        </div>
-        <div class="panel">
-            <div class="panel-title">🎙️ REMOTE AUDIO LOGS</div>
-            <div id="audio-feed"></div>
+        <h3 style="color:#00d2ff; font-family:'Orbitron'; font-size:0.8rem;">LOCATION LOGS</h3>
+        <div id="logs-container">
+            <p style="color:#94a3b8; font-size:0.7rem;">Waiting for data...</p>
         </div>
     </div>
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    var map = L.map('map', {zoomControl: false}).setView([26.7606, 83.8914], 13);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+    var currentLat = 0, currentLon = 0;
 
-    var pathLine = L.polyline([], {color: '#00d2ff', weight: 3, opacity: 0.6, dashArray: '5, 10'}).addTo(map);
-    var markersLayer = L.layerGroup().addTo(map);
+    // --- MAP LAYERS ---
+    var streetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: 'OSM' });
+    
+    var googleSatellite = L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+        maxZoom: 20, subdomains:['mt0','mt1','mt2','mt3'], attribution: 'Google Satellite'
+    });
 
-    function copyLink() {
-        navigator.clipboard.writeText(document.getElementById("trackLink").innerText);
-        alert("Link Copied!");
-    }
+    var googleHybrid = L.tileLayer('http://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+        maxZoom: 20, subdomains:['mt0','mt1','mt2','mt3'], attribution: 'Google Hybrid'
+    });
 
-    function refreshDashboard() {
-        // Fetch Location History
+    // Initialize Map
+    var map = L.map('map', {
+        center: [26.7394, 83.8868], // Default to Kushinagar area
+        zoom: 13,
+        layers: [googleHybrid] // Default view is Real Photo + Roads
+    });
+
+    var baseMaps = {
+        "Satellite (Photo)": googleSatellite,
+        "Hybrid (Photo+Roads)": googleHybrid,
+        "Standard Map": streetMap
+    };
+    L.control.layers(baseMaps).addTo(map);
+
+    var marker = L.circleMarker([0, 0], { radius: 10, color: '#00d2ff', fillColor: '#00d2ff', fillOpacity: 0.8 }).addTo(map);
+
+    function updateDashboard() {
         fetch('/get_data')
-            .then(res => res.json())
+            .then(response => response.json())
             .then(data => {
-                const feed = document.getElementById('location-feed');
-                if(data.length > 0) feed.innerHTML = '';
-                
-                let pathCoordinates = [];
-                markersLayer.clearLayers();
+                if (data.length > 0) {
+                    var last = data[0];
+                    currentLat = last.latitude;
+                    currentLon = last.longitude;
+                    
+                    var newPos = [currentLat, currentLon];
+                    marker.setLatLng(newPos);
+                    map.setView(newPos, 16);
 
-                // Reverse data taaki purane points pehle aayein path ke liye
-                data.slice().reverse().forEach((loc, i) => {
-                    const point = [loc.latitude, loc.longitude];
-                    pathCoordinates.push(point);
-
-                    // Marker logic
-                    let isLatest = (i === data.length - 1);
-                    L.circleMarker(point, {
-                        radius: isLatest ? 10 : 5,
-                        color: isLatest ? '#00d2ff' : '#39ff14',
-                        fillOpacity: 0.8
-                    }).addTo(markersLayer).bindPopup(`Time: ${loc.timestamp}<br>Battery: ${loc.battery}`);
-
-                    // Add to Sidebar (Latest on top)
-                    feed.innerHTML = `
-                        <div class="log-item" style="border-left-color: ${isLatest ? '#00d2ff' : '#39ff14'}">
-                            <b>${isLatest ? 'Current Location' : 'Past Point'}</b><br>
-                            <span style="font-size: 0.7rem;">Time: ${loc.timestamp} | Batt: ${loc.battery}</span>
-                        </div>
-                    ` + feed.innerHTML;
-                });
-
-                pathLine.setLatLngs(pathCoordinates);
-                if(pathCoordinates.length > 0) map.panTo(pathCoordinates[pathCoordinates.length - 1]);
-            });
-
-        // Fetch Audio Logs
-        fetch('/get_audios')
-            .then(res => res.json())
-            .then(data => {
-                const audioFeed = document.getElementById('audio-feed');
-                if(data.length > 0) audioFeed.innerHTML = '';
-                data.forEach(aud => {
-                    audioFeed.innerHTML += `
-                        <div class="log-item" style="border-left-color: #00d2ff;">
-                            <span style="font-size: 0.7rem;">${aud.timestamp}</span>
-                            <audio controls><source src="/static/recordings/${aud.filename}" type="audio/webm"></audio>
+                    // Update Logs
+                    document.getElementById('logs-container').innerHTML = `
+                        <div class="log-item">
+                            <b>Time:</b> ${last.timestamp}<br>
+                            <b>Batt:</b> ${last.battery}%<br>
+                            <b>Lat:</b> ${currentLat.toFixed(5)}<br>
+                            <b>Lon:</b> ${currentLon.toFixed(5)}
                         </div>
                     `;
-                });
+                }
             });
     }
 
-    setInterval(refreshDashboard, 10000);
-    refreshDashboard();
+    function openStreetView() {
+        if(currentLat !== 0) {
+            var url = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${currentLat},${currentLon}`;
+            window.open(url, '_blank');
+        } else {
+            alert("No location data available yet!");
+        }
+    }
+
+    function copyLink() {
+        var dummy = document.createElement("input");
+        document.body.appendChild(dummy);
+        dummy.value = "{{ link }}";
+        dummy.select();
+        document.execCommand("copy");
+        document.body.removeChild(dummy);
+        alert("Tracking URL Copied!");
+    }
+
+    setInterval(updateDashboard, 5000);
+    updateDashboard();
 </script>
+
 </body>
 </html>
