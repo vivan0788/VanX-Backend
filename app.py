@@ -126,5 +126,9 @@ def logout():
     return redirect(url_for('login'))
 
 if __name__ == '__main__':
+    # Render hamesha environment variable se PORT uthata hai
+    # Agar wo nahi milta toh default 10000 use karega
     port = int(os.environ.get("PORT", 10000))
+    
+    # host='0.0.0.0' hona zaroori hai taaki Render ise access kar sake
     app.run(host='0.0.0.0', port=port)
